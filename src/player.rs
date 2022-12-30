@@ -1,11 +1,16 @@
 use std::mem::{MaybeUninit, transmute};
 use crate::cards::{EmptyCard, SummonedCard, SupportCard};
-use crate::dice_set::{DiceSet, DiceType};
+use crate::character::Character;
+use crate::characters::fischl::fischl;
+use crate::characters::yoimiya::yoimiya;
+use crate::dice_set::{DiceSet, ElementType};
 
 pub struct Player {
     pub dice_set: DiceSet,
     pub support_area: [Box<dyn SupportCard>; 4],
     pub summon_area: [Box<dyn SummonedCard>; 4],
+    pub characters: [Character; 3],
+    pub active_character: usize,
 }
 
 macro_rules! init_array {
@@ -27,6 +32,8 @@ impl Default for Player {
             dice_set: DiceSet::default(),
             support_area: init_array!(Box<dyn SupportCard>, 4, Box::new(EmptyCard {})),
             summon_area: init_array!(Box<dyn SummonedCard>, 4, Box::new(EmptyCard{})),
+            characters: [yoimiya(), yoimiya(), fischl()],
+            active_character: 0usize,
         }
     }
 }

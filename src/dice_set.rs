@@ -5,7 +5,7 @@ use int_enum::IntEnum;
 
 #[repr(i8)]
 #[derive(PartialOrd, Ord, Clone, Copy, Eq, PartialEq, IntEnum, Debug)]
-pub enum DiceType {
+pub enum ElementType {
     Universal = 0,
     Electro = 1,
     Hydro = 2,
@@ -28,14 +28,14 @@ pub const COLORS: &[Color32] = &[
     Color32::from_rgb(123, 180, 45),
 ];
 
-impl fmt::Display for DiceType {
+impl fmt::Display for ElementType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
 pub struct DiceSet {
-    pub dices: [DiceType; 16],
+    pub dices: [ElementType; 16],
     pub dice_count: usize,
     rand: ThreadRng,
 }
@@ -43,7 +43,7 @@ pub struct DiceSet {
 impl Default for DiceSet {
     fn default() -> Self {
         DiceSet {
-            dices: [DiceType::Null; 16],
+            dices: [ElementType::Null; 16],
             dice_count: 0,
             rand: thread_rng(),
         }
@@ -56,10 +56,10 @@ pub enum DiceFindMode{
 }
 
 impl DiceSet {
-    fn generate_dice(&mut self) -> DiceType {
+    fn generate_dice(&mut self) -> ElementType {
         let val = self.rand.gen::<f64>() * 8.0;
         let int_val = val.floor() as i8;
-        DiceType::from_int(int_val).unwrap()
+        ElementType::from_int(int_val).unwrap()
     }
 
     pub fn reroll_dice(&mut self, index: usize) {
@@ -67,7 +67,7 @@ impl DiceSet {
     }
 
     pub fn roll_dices(&mut self) {
-        self.dices.fill(DiceType::Null);
+        self.dices.fill(ElementType::Null);
 
         for i in 0usize..8usize {
             self.dices[i] = self.generate_dice();
@@ -76,7 +76,7 @@ impl DiceSet {
         self.dice_count = 8;
     }
 
-    pub fn find_dice(mode: DiceFindMode, ty: DiceType, num: usize){
+    pub fn find_dice(mode: DiceFindMode, ty: ElementType, num: usize){
 
     }
 }
