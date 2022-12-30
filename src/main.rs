@@ -128,8 +128,23 @@ impl eframe::App for TcgApp {
             ui.horizontal(|ui| {
                 let active_character = &self.game_env.player.characters[self.game_env.player.active_character];
 
-                let _ = ui.button(
-                    format!("Normal Attack: 1{}+2Any", active_character.element));
+                if ui.button(
+                    format!("Normal Attack: 1{}+2Any", active_character.element)
+                ).clicked() {
+                    self.dice_selection.fill(false);
+
+                    // Test use only
+                    match player_dice_set
+                        .find_dice(false, ElementType::Null, 3) {
+                        Some(t) => {
+                            for elem in t {
+                                self.dice_selection.set(elem, true);
+                            }
+                        }
+                        None => {}
+                    }
+                }
+
                 if ui.button(
                     format!("E Skill: {}{}", active_character.e_cost, active_character.element)
                 ).clicked() {

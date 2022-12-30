@@ -104,7 +104,7 @@ impl DiceSet {
         let mut remaining_dices = num;
         let mut selected_type = ty;
 
-        if ty == ElementType::Null {
+        if ty == ElementType::Null && must_same {
             let mut type_count = [0usize; 8];
             for i in 0usize..self.dice_count {
                 let element_index = self.dices[i].int_value() as usize;
