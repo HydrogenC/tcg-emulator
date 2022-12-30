@@ -3,7 +3,7 @@ use crate::cards::{EmptyCard, SummonedCard, SupportCard};
 use crate::character::Character;
 use crate::characters::fischl::fischl;
 use crate::characters::yoimiya::yoimiya;
-use crate::dice_set::{DiceSet, ElementType};
+use crate::dice_set::DiceSet;
 
 pub struct Player {
     pub dice_set: DiceSet,

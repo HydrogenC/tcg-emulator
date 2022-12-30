@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use crate::dice_set::{COLORS, DiceSet};
 use eframe::egui;
-use egui::{Button, Color32, Stroke, Vec2, Visuals, Widget};
+use egui::{Button, Color32, ImageButton, Stroke, Vec2, Visuals, Widget};
 use bitvec::prelude::*;
 use int_enum::IntEnum;
 use crate::game_environment::GameEnvironment;
@@ -24,7 +24,7 @@ fn main() {
     let mut app = TcgApp::default();
     app.game_env.player.dice_set.roll_dices();
     app.game_env.player.dice_set.dices.sort();
-    for i in 0..16usize {
+    for _ in 0..16usize {
         app.dice_selection.push(false);
     }
 
@@ -33,6 +33,7 @@ fn main() {
         options,
         Box::new(|_cc| Box::new(app)),
     );
+
 }
 
 struct TcgApp {
@@ -69,7 +70,7 @@ impl eframe::App for TcgApp {
                         Stroke { width: 1f32, color: Color32::WHITE }
                     };
                     let btn = Button::new("")
-                        .min_size(Vec2::new(30f32, 30f32))
+                        .min_size(Vec2::new(25f32, 25f32))
                         .fill(COLORS[player_dice_set.dices[i].int_value() as usize])
                         .stroke(stroke);
                     if btn.ui(ui).clicked() {
@@ -96,19 +97,20 @@ impl eframe::App for TcgApp {
                 }
             });
 
-            let normal_stroke = Stroke { width: 1f32, color: Color32::WHITE };
-            let highlighted_stroke = Stroke { width: 2.5f32, color: Color32::WHITE };
-
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label("Opp");
 
                 let object = &mut self.game_env.opponent;
                 for i in 0..object.characters.len() {
+                    /*
                     let btn = Button::new(
                         format!("{}: {}", object.characters[i].name, object.characters[i].hp))
                         .fill(COLORS[object.characters[i].element.int_value() as usize])
                         .stroke(if i == object.active_character { highlighted_stroke } else { normal_stroke });
+                    */
+                    let btn=ImageButton::new(
+                        object.characters[i].image.texture_id(ctx), Vec2::new(52.5f32, 90f32));
                     btn.ui(ui);
                 }
             });
@@ -119,10 +121,15 @@ impl eframe::App for TcgApp {
 
                 let object = &mut self.game_env.player;
                 for i in 0..object.characters.len() {
+                    /*
                     let btn = Button::new(
                         format!("{}: {}", object.characters[i].name, object.characters[i].hp))
                         .fill(COLORS[object.characters[i].element.int_value() as usize])
                         .stroke(if i == object.active_character { highlighted_stroke } else { normal_stroke });
+                    */
+
+                    let btn=ImageButton::new(
+                        object.characters[i].image.texture_id(ctx), Vec2::new(52.5f32, 90f32));
                     if btn.ui(ui).clicked() {
                         object.active_character = i;
                     }

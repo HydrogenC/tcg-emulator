@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 rand = "0"
 egui = "0"
+image = { version = "0.24", default-features = false, features = ["png", "webp"] }
+egui_extras = { version="0", features = ["image"] }
 eframe = "0"
 int-enum = "0"
 bitvec = "1"

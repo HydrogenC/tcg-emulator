@@ -1,3 +1,4 @@
+use egui_extras::RetainedImage;
 use crate::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
@@ -37,5 +38,9 @@ pub fn yoimiya() -> Character {
         q_cost: 3,
         element: ElementType::Pyro,
         handler: Box::new(YoimiyaHandler::default()),
+        image: RetainedImage::from_image_bytes(
+            "Yoimiya",
+            include_bytes!("images/Yoimiya_Character_Card.webp"),
+        ).unwrap(),
     }
 }

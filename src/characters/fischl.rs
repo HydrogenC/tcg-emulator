@@ -1,3 +1,4 @@
+use egui_extras::RetainedImage;
 use crate::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
@@ -33,5 +34,9 @@ pub fn fischl() -> Character {
         q_cost: 4,
         element: ElementType::Electro,
         handler: Box::new(FischlHandler::default()),
+        image: RetainedImage::from_image_bytes(
+            "Fischl",
+            include_bytes!("images/Fischl_Character_Card.webp"),
+        ).unwrap(),
     }
 }

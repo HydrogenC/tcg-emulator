@@ -1,4 +1,3 @@
-use crate::character::CharacterHandler;
 use crate::game_environment::GameEnvironment;
 
 pub trait ActionCard {
