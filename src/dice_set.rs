@@ -19,20 +19,18 @@ pub enum DiceType {
 
 pub const COLORS: &[Color32] = &[
     Color32::from_rgb(255, 255, 255),
-    Color32::from_rgb(255, 0, 255),
-    Color32::from_rgb(0, 0, 255),
-    Color32::from_rgb(255, 0, 0),
-    Color32::from_rgb(0, 255, 255),
-    Color32::from_rgb(200, 200, 255),
-    Color32::from_rgb(255, 255, 0),
-    Color32::from_rgb(0, 255, 0),
+    Color32::from_rgb(211, 118, 240),
+    Color32::from_rgb(28, 114, 253),
+    Color32::from_rgb(226, 49, 29),
+    Color32::from_rgb(152, 200, 232),
+    Color32::from_rgb(51, 204, 179),
+    Color32::from_rgb(207, 167, 38),
+    Color32::from_rgb(123, 180, 45),
 ];
 
 impl fmt::Display for DiceType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
-        // or, alternatively:
-        // fmt::Debug::fmt(self, f)
     }
 }
 
@@ -42,19 +40,30 @@ pub struct DiceSet {
     rand: ThreadRng,
 }
 
-impl DiceSet {
-    pub fn new() -> Self {
+impl Default for DiceSet {
+    fn default() -> Self {
         DiceSet {
             dices: [DiceType::Null; 16],
             dice_count: 0,
             rand: thread_rng(),
         }
     }
+}
 
+pub enum DiceFindMode{
+    Any,
+    Same
+}
+
+impl DiceSet {
     fn generate_dice(&mut self) -> DiceType {
         let val = self.rand.gen::<f64>() * 8.0;
         let int_val = val.floor() as i8;
         DiceType::from_int(int_val).unwrap()
+    }
+
+    pub fn reroll_dice(&mut self, index: usize) {
+        self.dices[index] = self.generate_dice();
     }
 
     pub fn roll_dices(&mut self) {
@@ -65,5 +74,9 @@ impl DiceSet {
         }
 
         self.dice_count = 8;
+    }
+
+    pub fn find_dice(mode: DiceFindMode, ty: DiceType, num: usize){
+
     }
 }

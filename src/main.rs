@@ -2,9 +2,14 @@ use crate::dice_set::{COLORS, DiceSet};
 use eframe::egui;
 use egui::{Button, Color32, Vec2, Widget};
 use int_enum::IntEnum;
+use crate::game_environment::GameEnvironment;
 
 mod dice_set;
 mod card_set;
+mod cards;
+mod character;
+mod game_environment;
+mod player;
 
 fn main() {
     let options = eframe::NativeOptions {
@@ -13,8 +18,8 @@ fn main() {
     };
 
     let mut app = TcgApp::default();
-    app.dice_set.roll_dices();
-    app.dice_set.dices.sort();
+    app.game_env.player.dice_set.roll_dices();
+    app.game_env.player.dice_set.dices.sort();
 
     eframe::run_native(
         "tcg-emulator",
@@ -24,13 +29,13 @@ fn main() {
 }
 
 struct TcgApp {
-    pub dice_set: DiceSet,
+    game_env: GameEnvironment,
 }
 
 impl Default for TcgApp {
     fn default() -> Self {
         TcgApp {
-            dice_set: DiceSet::new()
+            game_env: GameEnvironment::default()
         }
     }
 }
@@ -38,20 +43,21 @@ impl Default for TcgApp {
 impl eframe::App for TcgApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            let player_dice_set=&mut self.game_env.player.dice_set;
             ctx.set_pixels_per_point(3.0);
 
             ui.heading("TCG Emulator");
             ui.horizontal(|ui| {
-                for i in 0usize..self.dice_set.dice_count {
+                for i in 0usize..player_dice_set.dice_count {
                     let btn = Button::new("C")
                         .min_size(Vec2::new(40f32, 40f32))
-                        .fill(COLORS[self.dice_set.dices[i].int_value() as usize]);
+                        .fill(COLORS[player_dice_set.dices[i].int_value() as usize]);
                     btn.ui(ui);
                 }
             });
             if ui.button("Reroll dices").clicked() {
-                self.dice_set.roll_dices();
-                self.dice_set.dices.sort();
+                player_dice_set.roll_dices();
+                player_dice_set.dices.sort();
             }
         });
     }
