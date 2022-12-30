@@ -1,7 +1,11 @@
+use std::cmp::Ordering;
 use std::fmt;
+use std::ptr::null;
+use bitvec::prelude::*;
 use egui::Color32;
 use rand::prelude::*;
 use int_enum::IntEnum;
+use crate::dice_set::ElementType::Universal;
 
 #[repr(i8)]
 #[derive(PartialOrd, Ord, Clone, Copy, Eq, PartialEq, IntEnum, Debug)]
@@ -50,11 +54,6 @@ impl Default for DiceSet {
     }
 }
 
-pub enum DiceFindMode{
-    Any,
-    Same
-}
-
 impl DiceSet {
     fn generate_dice(&mut self) -> ElementType {
         let val = self.rand.gen::<f64>() * 8.0;
@@ -76,7 +75,74 @@ impl DiceSet {
         self.dice_count = 8;
     }
 
-    pub fn find_dice(mode: DiceFindMode, ty: ElementType, num: usize){
+    pub fn sort_dice(&mut self, character_types: [ElementType; 3]) {
+        self.dices.sort_by(|a, b| {
+            if *a == ElementType::Universal {
+                return Ordering::Less;
+            }
 
+            if *b == ElementType::Universal {
+                return Ordering::Greater;
+            }
+
+            // Whether there are characters of element a
+            let is_a_used = character_types.contains(a);
+            if is_a_used == character_types.contains(b) {
+                a.int_value().cmp(&b.int_value())
+            } else {
+                if is_a_used {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            }
+        });
+    }
+
+    pub fn find_dice(&self, must_same: bool, ty: ElementType, num: usize) -> Option<Vec<usize>> {
+        let mut result = Vec::<usize>::new();
+        let mut remaining_dices = num;
+        let mut selected_type = ty;
+
+        if ty == ElementType::Null {
+            let mut type_count = [0usize; 8];
+            for i in 0usize..self.dice_count {
+                let element_index = self.dices[i].int_value() as usize;
+                type_count[element_index] += 1;
+
+                let total_count = if self.dices[i] == Universal {
+                    0usize
+                } else {
+                    type_count[0usize] + type_count[element_index]
+                };
+
+                if total_count >= num {
+                    selected_type = self.dices[i];
+                    break;
+                }
+            }
+        }
+
+        for i in (0usize..self.dice_count).rev() {
+            let cond = if must_same {
+                self.dices[i] == selected_type || self.dices[i] == Universal
+            } else {
+                true
+            };
+
+            if cond {
+                result.push(i);
+                remaining_dices -= 1;
+                if remaining_dices == 0 {
+                    break;
+                }
+            }
+        }
+
+        if remaining_dices == 0 {
+            Some(result)
+        } else {
+            None
+        }
     }
 }

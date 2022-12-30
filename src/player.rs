@@ -2,6 +2,7 @@ use std::mem::{MaybeUninit, transmute};
 use crate::cards::{EmptyCard, SummonedCard, SupportCard};
 use crate::character::Character;
 use crate::characters::fischl::fischl;
+use crate::characters::ganyu::ganyu;
 use crate::characters::yoimiya::yoimiya;
 use crate::dice_set::DiceSet;
 
@@ -32,7 +33,7 @@ impl Default for Player {
             dice_set: DiceSet::default(),
             support_area: init_array!(Box<dyn SupportCard>, 4, Box::new(EmptyCard {})),
             summon_area: init_array!(Box<dyn SummonedCard>, 4, Box::new(EmptyCard{})),
-            characters: [yoimiya(), yoimiya(), fischl()],
+            characters: [yoimiya(), ganyu(), fischl()],
             active_character: 0usize,
         }
     }

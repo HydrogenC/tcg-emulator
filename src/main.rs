@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use crate::dice_set::{COLORS, DiceSet};
+use crate::dice_set::{COLORS, DiceSet, ElementType};
 use eframe::egui;
 use egui::{Button, Color32, ImageButton, Stroke, Vec2, Visuals, Widget};
 use bitvec::prelude::*;
@@ -23,7 +23,7 @@ fn main() {
 
     let mut app = TcgApp::default();
     app.game_env.player.dice_set.roll_dices();
-    app.game_env.player.dice_set.dices.sort();
+    app.game_env.player.dice_set.sort_dice([ElementType::Cryo, ElementType::Electro, ElementType::Pyro]);
     for _ in 0..16usize {
         app.dice_selection.push(false);
     }
@@ -33,7 +33,6 @@ fn main() {
         options,
         Box::new(|_cc| Box::new(app)),
     );
-
 }
 
 struct TcgApp {
@@ -93,7 +92,7 @@ impl eframe::App for TcgApp {
                         }
                     }
 
-                    player_dice_set.dices.sort();
+                    player_dice_set.sort_dice([ElementType::Cryo, ElementType::Electro, ElementType::Pyro]);
                 }
             });
 
@@ -103,13 +102,7 @@ impl eframe::App for TcgApp {
 
                 let object = &mut self.game_env.opponent;
                 for i in 0..object.characters.len() {
-                    /*
-                    let btn = Button::new(
-                        format!("{}: {}", object.characters[i].name, object.characters[i].hp))
-                        .fill(COLORS[object.characters[i].element.int_value() as usize])
-                        .stroke(if i == object.active_character { highlighted_stroke } else { normal_stroke });
-                    */
-                    let btn=ImageButton::new(
+                    let btn = ImageButton::new(
                         object.characters[i].image.texture_id(ctx), Vec2::new(52.5f32, 90f32));
                     btn.ui(ui);
                 }
@@ -121,14 +114,7 @@ impl eframe::App for TcgApp {
 
                 let object = &mut self.game_env.player;
                 for i in 0..object.characters.len() {
-                    /*
-                    let btn = Button::new(
-                        format!("{}: {}", object.characters[i].name, object.characters[i].hp))
-                        .fill(COLORS[object.characters[i].element.int_value() as usize])
-                        .stroke(if i == object.active_character { highlighted_stroke } else { normal_stroke });
-                    */
-
-                    let btn=ImageButton::new(
+                    let btn = ImageButton::new(
                         object.characters[i].image.texture_id(ctx), Vec2::new(52.5f32, 90f32));
                     if btn.ui(ui).clicked() {
                         object.active_character = i;
@@ -136,16 +122,45 @@ impl eframe::App for TcgApp {
                 }
             });
 
+            // Renew borrow
+            let player_dice_set = &mut self.game_env.player.dice_set;
             ui.separator();
             ui.horizontal(|ui| {
                 let active_character = &self.game_env.player.characters[self.game_env.player.active_character];
 
                 let _ = ui.button(
                     format!("Normal Attack: 1{}+2Any", active_character.element));
-                let _ = ui.button(
-                    format!("E Skill: {}{}", active_character.e_cost, active_character.element));
-                let _ = ui.button(
-                    format!("Q Skill: {}{}", active_character.q_cost, active_character.element));
+                if ui.button(
+                    format!("E Skill: {}{}", active_character.e_cost, active_character.element)
+                ).clicked() {
+                    self.dice_selection.fill(false);
+
+                    match player_dice_set
+                        .find_dice(true, active_character.element, active_character.e_cost) {
+                        Some(t) => {
+                            for elem in t {
+                                self.dice_selection.set(elem, true);
+                            }
+                        }
+                        None => {}
+                    }
+                }
+
+                if ui.button(
+                    format!("Q Skill: {}{}", active_character.q_cost, active_character.element)
+                ).clicked() {
+                    self.dice_selection.fill(false);
+
+                    match player_dice_set
+                        .find_dice(true, active_character.element, active_character.q_cost) {
+                        Some(t) => {
+                            for elem in t {
+                                self.dice_selection.set(elem, true);
+                            }
+                        }
+                        None => {}
+                    }
+                }
             });
         });
     }
