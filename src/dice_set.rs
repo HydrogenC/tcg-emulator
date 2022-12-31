@@ -1,7 +1,5 @@
 use std::cmp::Ordering;
 use std::fmt;
-use std::ptr::null;
-use bitvec::prelude::*;
 use egui::Color32;
 use rand::prelude::*;
 use int_enum::IntEnum;
@@ -41,7 +39,6 @@ impl fmt::Display for ElementType {
 pub struct DiceSet {
     pub dices: [ElementType; 16],
     pub dice_count: usize,
-    rand: ThreadRng,
 }
 
 impl Default for DiceSet {
@@ -49,14 +46,13 @@ impl Default for DiceSet {
         DiceSet {
             dices: [ElementType::Null; 16],
             dice_count: 0,
-            rand: thread_rng(),
         }
     }
 }
 
 impl DiceSet {
     fn generate_dice(&mut self) -> ElementType {
-        let val = self.rand.gen::<f64>() * 8.0;
+        let val = thread_rng().gen::<f64>() * 8.0;
         let int_val = val.floor() as i8;
         ElementType::from_int(int_val).unwrap()
     }

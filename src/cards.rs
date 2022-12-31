@@ -1,16 +1,16 @@
 use crate::game_environment::GameEnvironment;
 
-pub trait ActionCard {
+pub trait ActionCard: Send + Sync {
     fn use_card(&self, target: usize, env: &mut GameEnvironment) {}
 }
 
-pub trait SupportCard {
+pub trait SupportCard: Send + Sync {
     fn on_created(&self, env: &mut GameEnvironment) {}
     fn on_turn_start(&self, env: &mut GameEnvironment) {}
     fn on_turn_end(&self, env: &mut GameEnvironment) {}
 }
 
-pub trait SummonedCard {
+pub trait SummonedCard: Send + Sync {
     fn on_turn_end(&self, env: &mut GameEnvironment) {}
 }
 

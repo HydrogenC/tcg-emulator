@@ -2,7 +2,7 @@ use egui_extras::RetainedImage;
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
 
-pub trait CharacterHandler {
+pub trait CharacterHandler: Send + Sync {
     fn on_normal_attack(&self, me: usize, target: usize, env: &mut GameEnvironment);
     fn on_e_skill(&self, me: usize, target: usize, env: &mut GameEnvironment);
     fn on_q_skill(&self, me: usize, target: usize, env: &mut GameEnvironment);
@@ -16,5 +16,5 @@ pub struct Character {
     pub(crate) q_cost: usize,
     pub(crate) element: ElementType,
     pub(crate) handler: Box<dyn CharacterHandler>,
-    pub(crate) image: RetainedImage
+    pub(crate) image: RetainedImage,
 }

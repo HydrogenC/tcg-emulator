@@ -1,11 +1,12 @@
-use std::borrow::Borrow;
-use crate::dice_set::{COLORS, DiceSet, ElementType};
+use std::sync::{Arc, RwLock};
+use std::sync::mpsc::{channel, Receiver, Sender};
+use crate::dice_set::{COLORS, ElementType};
 use eframe::egui;
 use egui::{Button, Color32, ImageButton, Stroke, Vec2, Visuals, Widget};
 use bitvec::prelude::*;
 use int_enum::IntEnum;
 use crate::game_environment::GameEnvironment;
-use crate::player::Player;
+use crate::messages::Message;
 
 mod dice_set;
 mod card_set;
@@ -14,6 +15,7 @@ mod character;
 mod game_environment;
 mod player;
 mod characters;
+mod messages;
 
 fn main() {
     let options = eframe::NativeOptions {
@@ -21,12 +23,28 @@ fn main() {
         ..Default::default()
     };
 
-    let mut app = TcgApp::default();
-    app.game_env.player.dice_set.roll_dices();
-    app.game_env.player.dice_set.sort_dice([ElementType::Cryo, ElementType::Electro, ElementType::Pyro]);
+    let (send, recv) = channel::<Message>();
+    let mut app = TcgApp::new(send);
+
+    {
+        let mut env = app.game_env.write().unwrap();
+        env.player.dice_set.roll_dices();
+        env.player.dice_set.sort_dice([ElementType::Cryo, ElementType::Electro, ElementType::Pyro]);
+    }
+
     for _ in 0..16usize {
         app.dice_selection.push(false);
     }
+
+    let thread_game_env = app.game_env.clone();
+    std::thread::spawn(move || {
+        loop {
+            let msg = recv.recv().unwrap();
+            let mut env = thread_game_env.write().unwrap();
+
+            env.game_loop(&msg);
+        }
+    });
 
     eframe::run_native(
         "tcg-emulator",
@@ -36,23 +54,27 @@ fn main() {
 }
 
 struct TcgApp {
-    game_env: GameEnvironment,
+    game_env: Arc<RwLock<GameEnvironment>>,
     dice_selection: BitVec<u16>,
+    game_loop_recv: Sender<Message>,
 }
 
-impl Default for TcgApp {
-    fn default() -> Self {
+impl TcgApp {
+    fn new(recv: Sender<Message>) -> Self {
         TcgApp {
-            game_env: GameEnvironment::default(),
+            game_env: Arc::new(RwLock::new(GameEnvironment::default())),
             dice_selection: BitVec::with_capacity(16),
+            game_loop_recv: recv,
         }
     }
 }
 
 impl eframe::App for TcgApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let mut env = self.game_env.write().unwrap();
+
         egui::CentralPanel::default().show(ctx, |ui| {
-            let player_dice_set = &mut self.game_env.player.dice_set;
+            let player_dice_set = &mut env.player.dice_set;
             ctx.set_pixels_per_point(3.0);
             ctx.set_visuals({
                 let mut vis = Visuals::dark();
@@ -100,7 +122,7 @@ impl eframe::App for TcgApp {
             ui.horizontal(|ui| {
                 ui.label("Opp");
 
-                let object = &mut self.game_env.opponent;
+                let object = &mut env.opponent;
                 for i in 0..object.characters.len() {
                     let btn = ImageButton::new(
                         object.characters[i].image.texture_id(ctx), Vec2::new(52.5f32, 90f32));
@@ -112,21 +134,20 @@ impl eframe::App for TcgApp {
             ui.horizontal(|ui| {
                 ui.label("You");
 
-                let object = &mut self.game_env.player;
+                let object = &mut env.player;
                 for i in 0..object.characters.len() {
                     let btn = ImageButton::new(
                         object.characters[i].image.texture_id(ctx), Vec2::new(52.5f32, 90f32));
-                    if btn.ui(ui).clicked() {
-                        object.active_character = i;
+                    if btn.ui(ui).clicked() && object.active_character != i {
+                        self.game_loop_recv.send(Message::ChangeActive(i))
+                            .expect("Send message failed");
                     }
                 }
             });
 
-            // Renew borrow
-            let player_dice_set = &mut self.game_env.player.dice_set;
             ui.separator();
             ui.horizontal(|ui| {
-                let active_character = &self.game_env.player.characters[self.game_env.player.active_character];
+                let active_character = &env.player.characters[env.player.active_character];
 
                 if ui.button(
                     format!("Normal Attack: 1{}+2Any", active_character.element)
@@ -134,7 +155,7 @@ impl eframe::App for TcgApp {
                     self.dice_selection.fill(false);
 
                     // Test use only
-                    match player_dice_set
+                    match env.player.dice_set
                         .find_dice(false, ElementType::Null, 3) {
                         Some(t) => {
                             for elem in t {
@@ -150,7 +171,7 @@ impl eframe::App for TcgApp {
                 ).clicked() {
                     self.dice_selection.fill(false);
 
-                    match player_dice_set
+                    match env.player.dice_set
                         .find_dice(true, active_character.element, active_character.e_cost) {
                         Some(t) => {
                             for elem in t {
@@ -166,7 +187,7 @@ impl eframe::App for TcgApp {
                 ).clicked() {
                     self.dice_selection.fill(false);
 
-                    match player_dice_set
+                    match env.player.dice_set
                         .find_dice(true, active_character.element, active_character.q_cost) {
                         Some(t) => {
                             for elem in t {
