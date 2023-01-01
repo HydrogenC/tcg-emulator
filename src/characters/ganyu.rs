@@ -1,5 +1,6 @@
+use std::sync::{Arc, Mutex};
 use egui_extras::RetainedImage;
-use crate::character::{Character, CharacterHandler};
+use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
 
@@ -12,15 +13,15 @@ impl Default for GanyuHandler {
 }
 
 impl CharacterHandler for GanyuHandler {
-    fn on_normal_attack(&self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_normal_attack(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
         todo!()
     }
 
-    fn on_e_skill(&self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_e_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
         todo!()
     }
 
-    fn on_q_skill(&self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_q_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
         todo!()
     }
 }
@@ -33,7 +34,7 @@ pub fn ganyu() -> Character {
         e_cost: 1,
         q_cost: 3,
         element: ElementType::Cryo,
-        handler: Box::new(GanyuHandler::default()),
+        handler: Arc::new(Mutex::new(GanyuHandler::default())),
         image: RetainedImage::from_image_bytes(
             "Ganyu",
             include_bytes!("images/Ganyu_Character_Card.webp"),

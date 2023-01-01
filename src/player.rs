@@ -1,6 +1,7 @@
 use std::mem::{MaybeUninit, transmute};
+use std::sync::Arc;
 use crate::cards::{EmptyCard, SummonedCard, SupportCard};
-use crate::character::Character;
+use crate::characters::character::Character;
 use crate::characters::fischl::fischl;
 use crate::characters::ganyu::ganyu;
 use crate::characters::yoimiya::yoimiya;
@@ -8,8 +9,8 @@ use crate::dice_set::DiceSet;
 
 pub struct Player {
     pub dice_set: DiceSet,
-    pub support_area: [Box<dyn SupportCard>; 4],
-    pub summon_area: [Box<dyn SummonedCard>; 4],
+    pub support_area: [Arc<dyn SupportCard>; 4],
+    pub summon_area: [Arc<dyn SummonedCard>; 4],
     pub characters: [Character; 3],
     pub active_character: usize,
 }
@@ -31,8 +32,8 @@ impl Default for Player {
     fn default() -> Self {
         Player {
             dice_set: DiceSet::default(),
-            support_area: init_array!(Box<dyn SupportCard>, 4, Box::new(EmptyCard {})),
-            summon_area: init_array!(Box<dyn SummonedCard>, 4, Box::new(EmptyCard{})),
+            support_area: init_array!(Arc<dyn SupportCard>, 4, Arc::new(EmptyCard {})),
+            summon_area: init_array!(Arc<dyn SummonedCard>, 4, Arc::new(EmptyCard{})),
             characters: [yoimiya(), ganyu(), fischl()],
             active_character: 0usize,
         }

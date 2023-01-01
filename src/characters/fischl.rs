@@ -1,5 +1,6 @@
+use std::sync::{Arc, Mutex};
 use egui_extras::RetainedImage;
-use crate::character::{Character, CharacterHandler};
+use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
 
@@ -12,15 +13,15 @@ impl Default for FischlHandler {
 }
 
 impl CharacterHandler for FischlHandler {
-    fn on_normal_attack(&self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_normal_attack(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
         todo!()
     }
 
-    fn on_e_skill(&self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_e_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
         todo!()
     }
 
-    fn on_q_skill(&self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_q_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
         todo!()
     }
 }
@@ -33,7 +34,7 @@ pub fn fischl() -> Character {
         e_cost: 3,
         q_cost: 4,
         element: ElementType::Electro,
-        handler: Box::new(FischlHandler::default()),
+        handler: Arc::new(Mutex::new(FischlHandler::default())),
         image: RetainedImage::from_image_bytes(
             "Fischl",
             include_bytes!("images/Fischl_Character_Card.webp"),
