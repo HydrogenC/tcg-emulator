@@ -1,5 +1,6 @@
+use std::sync::Arc;
 use crate::cards::ActionCard;
 
 pub struct CardSet{
-    pub cards: [Box<dyn ActionCard>; 10]
+    pub cards: [Arc<dyn ActionCard>; 10]
 }

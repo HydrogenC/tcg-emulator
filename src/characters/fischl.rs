@@ -1,24 +1,51 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use egui_extras::RetainedImage;
+use crate::cards::SummonedCard;
 use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
 
-struct FischlHandler {}
+struct FischlHandler {
+    oz: Arc<Oz>,
+}
+
+struct Oz {
+    lifetime: usize,
+}
+
+impl SummonedCard for Oz {
+    fn on_turn_end(&self, env: &mut GameEnvironment) {
+        env.opponent.characters[env.opponent.active_character].hp -= 1;
+    }
+
+    fn remaining_uses(&self) -> usize {
+        self.lifetime
+    }
+}
 
 impl Default for FischlHandler {
     fn default() -> Self {
-        FischlHandler {}
+        FischlHandler {
+            oz: Arc::new(Oz { lifetime: 0 }),
+        }
     }
 }
 
 impl CharacterHandler for FischlHandler {
     fn on_normal_attack(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
-        todo!()
+        env.opponent.characters[target].hp -= 2;
     }
 
     fn on_e_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
-        todo!()
+        if self.oz.lifetime == 0 {
+            env.player.insert_summoned(self.oz.clone());
+        }
+
+        // This is safe because oz will only be read in one thread
+        unsafe {
+            let oz_raw = Arc::into_raw(self.oz.clone()) as *mut Oz;
+            (*oz_raw).lifetime = 2;
+        }
     }
 
     fn on_q_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
@@ -34,7 +61,7 @@ pub fn fischl() -> Character {
         e_cost: 3,
         q_cost: 4,
         element: ElementType::Electro,
-        handler: Arc::new(Mutex::new(FischlHandler::default())),
+        handler: Arc::new(FischlHandler::default()),
         image: RetainedImage::from_image_bytes(
             "Fischl",
             include_bytes!("images/Fischl_Character_Card.webp"),

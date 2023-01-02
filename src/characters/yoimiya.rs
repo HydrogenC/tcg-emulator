@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use egui_extras::RetainedImage;
 use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
@@ -39,7 +39,7 @@ pub fn yoimiya() -> Character {
         e_cost: 1,
         q_cost: 3,
         element: ElementType::Pyro,
-        handler: Arc::new(Mutex::new(YoimiyaHandler::default())),
+        handler: Arc::new(YoimiyaHandler::default()),
         image: RetainedImage::from_image_bytes(
             "Yoimiya",
             include_bytes!("images/Yoimiya_Character_Card.webp"),

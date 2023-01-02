@@ -28,7 +28,7 @@ fn main() {
     {
         let mut env = app.game_env.write().unwrap();
         env.player.dice_set.roll_dices();
-        env.player.dice_set.sort_dice([ElementType::Cryo, ElementType::Electro, ElementType::Pyro]);
+        env.player.dice_set.sort_dice(vec![ElementType::Cryo, ElementType::Electro, ElementType::Pyro]);
     }
 
     for _ in 0..16usize {
@@ -77,10 +77,16 @@ impl TcgApp {
             app_state: AppState::Rerolling,
         }
     }
+
+    fn no_dice_selected(&self) -> bool {
+        let bit_val = *self.dice_selection.as_raw_slice().first().unwrap();
+        bit_val == 0u16
+    }
 }
 
 impl eframe::App for TcgApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let no_dice_selected = self.no_dice_selected();
         let mut env = self.game_env.write().unwrap();
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -116,9 +122,10 @@ impl eframe::App for TcgApp {
                     if ui.button("Reroll dices").clicked() {
                         {
                             let player_dice_set = &mut env.player.dice_set;
-                            let bit_val = *self.dice_selection.as_raw_slice().first().unwrap();
-                            if bit_val == 0u16 {
-                                player_dice_set.roll_dices();
+
+                            if no_dice_selected {
+                                env.reroll_chances = 0;
+                                self.app_state = AppState::Operating;
                             } else {
                                 for i in 0usize..player_dice_set.dice_count {
                                     if self.dice_selection[i] {
@@ -128,19 +135,15 @@ impl eframe::App for TcgApp {
                                     self.dice_selection.set(i, false);
                                 }
                             }
-
-                            player_dice_set.sort_dice([ElementType::Cryo, ElementType::Electro, ElementType::Pyro]);
                         }
+
+                        let player_elements = env.player.get_character_elements();
+                        env.player.dice_set.sort_dice(player_elements);
 
                         env.reroll_chances -= 1;
                         if env.reroll_chances == 0 {
                             self.app_state = AppState::Operating;
                         }
-                    }
-
-                    if ui.button("Skip").clicked() {
-                        env.reroll_chances -= 0;
-                        self.app_state = AppState::Operating;
                     }
                 }
             });

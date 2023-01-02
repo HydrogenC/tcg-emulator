@@ -65,13 +65,13 @@ impl DiceSet {
         self.dices.fill(ElementType::Null);
 
         for i in 0usize..8usize {
-            self.dices[i] = self.generate_dice();
+            self.reroll_dice(i);
         }
 
         self.dice_count = 8;
     }
 
-    pub fn sort_dice(&mut self, character_types: [ElementType; 3]) {
+    pub fn sort_dice(&mut self, character_types: Vec<ElementType>) {
         self.dices.sort_by(|a, b| {
             if *a == ElementType::Universal {
                 return Ordering::Less;
@@ -103,6 +103,7 @@ impl DiceSet {
         if ty == ElementType::Null && must_same {
             let mut type_count = [0usize; 8];
             for i in 0usize..self.dice_count {
+
                 let element_index = self.dices[i].int_value() as usize;
                 type_count[element_index] += 1;
 
@@ -120,6 +121,7 @@ impl DiceSet {
         }
 
         for i in (0usize..self.dice_count).rev() {
+
             let cond = if must_same {
                 self.dices[i] == selected_type || self.dices[i] == Universal
             } else {

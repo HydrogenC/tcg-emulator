@@ -11,7 +11,9 @@ pub trait SupportCard: Send + Sync {
 }
 
 pub trait SummonedCard: Send + Sync {
+    fn on_attacked(&self, env: &mut GameEnvironment) {}
     fn on_turn_end(&self, env: &mut GameEnvironment) {}
+    fn remaining_uses(&self) -> usize;
 }
 
 #[derive(Copy, Clone)]
@@ -21,4 +23,8 @@ impl ActionCard for EmptyCard {}
 
 impl SupportCard for EmptyCard {}
 
-impl SummonedCard for EmptyCard {}
+impl SummonedCard for EmptyCard {
+    fn remaining_uses(&self) -> usize {
+        1
+    }
+}

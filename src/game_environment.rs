@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use crate::characters::character::CharacterHandler;
+use crate::dice_set::ElementType;
 use crate::messages::{Message, SkillType};
 use crate::player::Player;
 
@@ -27,17 +30,25 @@ impl GameEnvironment {
                 s.use_card(*t, self);
             }
             Message::TurnEnd => {
-                let player_summon_area = self.player.summon_area.clone();
-                for i in player_summon_area.iter() {
-                    i.on_turn_end(self);
-                }
-                drop(player_summon_area);
+                let player_summoned_area = self.player.summoned_area.clone();
+                for i in 0..player_summoned_area.len() {
+                    player_summoned_area[i].on_turn_end(self);
 
-                let opponent_summon_area = self.opponent.summon_area.clone();
-                for i in opponent_summon_area.iter() {
-                    i.on_turn_end(self);
+                    if player_summoned_area[i].remaining_uses() == 0 {
+                        self.player.remove_summoned(i);
+                    }
                 }
-                drop(opponent_summon_area);
+                drop(player_summoned_area);
+
+                let opponent_summoned_area = self.opponent.summoned_area.clone();
+                for i in 0..opponent_summoned_area.len() {
+                    opponent_summoned_area[i].on_turn_end(self);
+
+                    if opponent_summoned_area[i].remaining_uses() == 0 {
+                        self.opponent.remove_summoned(i);
+                    }
+                }
+                drop(opponent_summoned_area);
 
                 let player_support_area = self.player.support_area.clone();
                 for i in player_support_area.iter() {
@@ -55,16 +66,21 @@ impl GameEnvironment {
                 self.reroll_chances = 1;
             }
             Message::UseSkill(s, t) => {
-                let handler = self.player.characters[self.player.active_character].handler.clone();
-                match s {
-                    SkillType::NormalAttack => {
-                        handler.lock().unwrap().on_normal_attack(self.player.active_character, *t, self);
-                    }
-                    SkillType::ESkill => {
-                        handler.lock().unwrap().on_e_skill(self.player.active_character, *t, self);
-                    }
-                    SkillType::QSkill => {
-                        handler.lock().unwrap().on_q_skill(self.player.active_character, *t, self);
+                let raw_handler =
+                    Arc::into_raw(self.player.characters[self.player.active_character].handler.clone())
+                        as *mut dyn CharacterHandler;
+                // This is safe because handler will only be read in one thread
+                unsafe {
+                    match s {
+                        SkillType::NormalAttack => {
+                            (*raw_handler).on_normal_attack(self.player.active_character, *t, self);
+                        }
+                        SkillType::ESkill => {
+                            (*raw_handler).on_e_skill(self.player.active_character, *t, self);
+                        }
+                        SkillType::QSkill => {
+                            (*raw_handler).on_q_skill(self.player.active_character, *t, self);
+                        }
                     }
                 }
             }
