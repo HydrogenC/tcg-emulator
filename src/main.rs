@@ -1,9 +1,13 @@
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{channel, Sender};
 use crate::dice_set::{COLORS, ElementType};
 use eframe::egui;
 use egui::{Button, Color32, ImageButton, Stroke, Vec2, Visuals, Widget};
 use bitvec::prelude::*;
+use egui_extras::RetainedImage;
 use int_enum::IntEnum;
 use crate::game_environment::GameEnvironment;
 use crate::messages::{Message, SkillType};
@@ -24,11 +28,17 @@ fn main() {
 
     let (send, recv) = channel::<Message>();
     let mut app = TcgApp::new(send);
+    app.add_resources("Fischl_Character_Card.webp".to_string());
+    app.add_resources("Yoimiya_Character_Card.webp".to_string());
+    app.add_resources("Ganyu_Character_Card.webp".to_string());
+    app.add_resources("Oz_Summon.webp".to_string());
 
     {
         let mut env = app.game_env.write().unwrap();
         env.player.dice_set.roll_dices();
-        env.player.dice_set.sort_dice(vec![ElementType::Cryo, ElementType::Electro, ElementType::Pyro]);
+
+        let player_elements = env.player.get_character_elements();
+        env.player.dice_set.sort_dice(player_elements);
     }
 
     for _ in 0..16usize {
@@ -66,6 +76,7 @@ struct TcgApp {
     dice_selection: BitVec<u16>,
     game_loop_recv: Sender<Message>,
     app_state: AppState,
+    image_dictionary: HashMap<String, Arc<RetainedImage>>,
 }
 
 impl TcgApp {
@@ -75,12 +86,25 @@ impl TcgApp {
             dice_selection: BitVec::with_capacity(16),
             game_loop_recv: recv,
             app_state: AppState::Rerolling,
+            image_dictionary: HashMap::new(),
         }
     }
 
     fn no_dice_selected(&self) -> bool {
         let bit_val = *self.dice_selection.as_raw_slice().first().unwrap();
         bit_val == 0u16
+    }
+
+    fn add_resources(&mut self, file_name: String) {
+        let f = File::open(format!("src/images/{}", file_name)).unwrap();
+        let mut reader = BufReader::new(f);
+        let mut buffer = Vec::new();
+        reader.read_to_end(&mut buffer).unwrap();
+
+        self.image_dictionary.insert(file_name.clone(), Arc::new(RetainedImage::from_image_bytes(
+            file_name.as_str(),
+            buffer.as_slice(),
+        ).unwrap()));
     }
 }
 
@@ -149,6 +173,7 @@ impl eframe::App for TcgApp {
             });
 
             ui.separator();
+
             ui.horizontal(|ui| {
                 ui.label("Opp");
 
@@ -157,8 +182,9 @@ impl eframe::App for TcgApp {
                     ui.vertical(|ui| {
                         ui.label(format!("HP: {}", object.characters[i].hp));
 
+                        let pic = self.image_dictionary[&object.characters[i].image_key.to_string()].clone();
                         let btn = ImageButton::new(
-                            object.characters[i].image.texture_id(ctx), Vec2::new(52.5f32, 90f32));
+                            pic.texture_id(ctx), Vec2::new(52.5f32, 90f32));
                         if btn.ui(ui).clicked() {
                             if let AppState::Targeting(x) = &self.app_state {
                                 self.game_loop_recv.send(Message::UseSkill(*x, i)).expect("TODO: panic message");
@@ -177,8 +203,9 @@ impl eframe::App for TcgApp {
                     ui.vertical(|ui| {
                         ui.label(format!("HP: {}", object.characters[i].hp));
 
+                        let pic = self.image_dictionary[&object.characters[i].image_key.to_string()].clone();
                         let btn = ImageButton::new(
-                            object.characters[i].image.texture_id(ctx), Vec2::new(52.5f32, 90f32));
+                            pic.texture_id(ctx), Vec2::new(52.5f32, 90f32));
                         if btn.ui(ui).clicked() && object.active_character != i {
                             self.game_loop_recv.send(Message::ChangeActive(i))
                                 .expect("Send message failed");

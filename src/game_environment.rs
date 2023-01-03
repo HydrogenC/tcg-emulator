@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use crate::characters::character::CharacterHandler;
-use crate::dice_set::ElementType;
 use crate::messages::{Message, SkillType};
 use crate::player::Player;
 

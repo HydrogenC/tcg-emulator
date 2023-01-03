@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use egui_extras::RetainedImage;
 use crate::cards::SummonedCard;
 use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
@@ -62,9 +61,6 @@ pub fn fischl() -> Character {
         q_cost: 4,
         element: ElementType::Electro,
         handler: Arc::new(FischlHandler::default()),
-        image: RetainedImage::from_image_bytes(
-            "Fischl",
-            include_bytes!("images/Fischl_Character_Card.webp"),
-        ).unwrap(),
+        image_key: "Fischl_Character_Card.webp",
     }
 }

@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use egui_extras::RetainedImage;
 use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
@@ -35,9 +34,6 @@ pub fn ganyu() -> Character {
         q_cost: 3,
         element: ElementType::Cryo,
         handler: Arc::new(GanyuHandler::default()),
-        image: RetainedImage::from_image_bytes(
-            "Ganyu",
-            include_bytes!("images/Ganyu_Character_Card.webp"),
-        ).unwrap(),
+        image_key: "Ganyu_Character_Card.webp",
     }
 }

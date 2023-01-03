@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use egui_extras::RetainedImage;
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
 
@@ -17,5 +16,5 @@ pub struct Character {
     pub(crate) q_cost: usize,
     pub(crate) element: ElementType,
     pub(crate) handler: Arc<dyn CharacterHandler>,
-    pub(crate) image: RetainedImage,
+    pub(crate) image_key: &'static str,
 }

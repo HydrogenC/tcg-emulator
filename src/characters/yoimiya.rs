@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use egui_extras::RetainedImage;
 use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
@@ -40,9 +39,6 @@ pub fn yoimiya() -> Character {
         q_cost: 3,
         element: ElementType::Pyro,
         handler: Arc::new(YoimiyaHandler::default()),
-        image: RetainedImage::from_image_bytes(
-            "Yoimiya",
-            include_bytes!("images/Yoimiya_Character_Card.webp"),
-        ).unwrap(),
+        image_key: "Yoimiya_Character_Card.webp"
     }
 }
