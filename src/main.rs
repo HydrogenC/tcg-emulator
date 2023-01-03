@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::sync::{Arc, RwLock};
@@ -28,10 +29,7 @@ fn main() {
 
     let (send, recv) = channel::<Message>();
     let mut app = TcgApp::new(send);
-    app.add_resources("Fischl_Character_Card.webp".to_string());
-    app.add_resources("Yoimiya_Character_Card.webp".to_string());
-    app.add_resources("Ganyu_Character_Card.webp".to_string());
-    app.add_resources("Oz_Summon.webp".to_string());
+    app.load_resources();
 
     {
         let mut env = app.game_env.write().unwrap();
@@ -95,16 +93,23 @@ impl TcgApp {
         bit_val == 0u16
     }
 
-    fn add_resources(&mut self, file_name: String) {
-        let f = File::open(format!("src/images/{}", file_name)).unwrap();
-        let mut reader = BufReader::new(f);
-        let mut buffer = Vec::new();
-        reader.read_to_end(&mut buffer).unwrap();
+    fn load_resources(&mut self) {
+        let files = fs::read_dir("images/").unwrap();
 
-        self.image_dictionary.insert(file_name.clone(), Arc::new(RetainedImage::from_image_bytes(
-            file_name.as_str(),
-            buffer.as_slice(),
-        ).unwrap()));
+        for elem in files {
+            let path = elem.unwrap().path();
+            let file_name=path.file_name().unwrap().to_str().unwrap();
+
+            let f = File::open(path.as_path()).unwrap();
+            let mut reader = BufReader::new(f);
+            let mut buffer = Vec::new();
+            reader.read_to_end(&mut buffer).unwrap();
+
+            self.image_dictionary.insert(file_name.to_string(), Arc::new(RetainedImage::from_image_bytes(
+                file_name,
+                buffer.as_slice(),
+            ).unwrap()));
+        }
     }
 }
 
