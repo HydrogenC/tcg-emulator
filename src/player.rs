@@ -15,6 +15,7 @@ pub struct Player {
     pub active_character: usize,
     pub support_area_count: usize,
     pub summoned_area_count: usize,
+    pub reroll_chances: usize,
 }
 
 macro_rules! init_array {
@@ -40,6 +41,7 @@ impl Default for Player {
             active_character: 0usize,
             support_area_count: 0usize,
             summoned_area_count: 0usize,
+            reroll_chances: 0usize,
         }
     }
 }

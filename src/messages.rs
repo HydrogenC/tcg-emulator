@@ -12,6 +12,7 @@ pub enum Message {
     ChangeActive(usize),
     TurnEnd,
     TurnStart,
-    UseSkill(SkillType, usize),
+    UseSkill(SkillType, usize, Vec<usize>),
     UseActionCard(Arc<dyn ActionCard>, usize),
+    RerollDice(Vec<usize>)
 }

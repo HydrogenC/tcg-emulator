@@ -1,12 +1,12 @@
 use std::sync::Arc;
 use crate::characters::character::CharacterHandler;
+use crate::dice_set::ElementType;
 use crate::messages::{Message, SkillType};
 use crate::player::Player;
 
 pub struct GameEnvironment {
     pub player: Player,
     pub opponent: Player,
-    pub reroll_chances: usize,
 }
 
 impl Default for GameEnvironment {
@@ -14,7 +14,6 @@ impl Default for GameEnvironment {
         GameEnvironment {
             player: Player::default(),
             opponent: Player::default(),
-            reroll_chances: 0,
         }
     }
 }
@@ -25,9 +24,11 @@ impl GameEnvironment {
             Message::ChangeActive(t) => {
                 self.player.active_character = *t;
             }
-            Message::UseActionCard(s, t) => {
-                s.use_card(*t, self);
+
+            Message::UseActionCard(card, target) => {
+                card.use_card(*target, self);
             }
+
             Message::TurnEnd => {
                 let player_summoned_area = self.player.summoned_area.clone();
                 for i in 0..player_summoned_area.len() {
@@ -61,26 +62,66 @@ impl GameEnvironment {
                 }
                 drop(opponent_support_area);
             }
+
             Message::TurnStart => {
-                self.reroll_chances = 1;
+                self.player.reroll_chances = 1;
+
+                self.player.dice_set.roll_dices();
+                let player_elements = self.player.get_character_elements();
+                self.player.dice_set.sort_dice(player_elements);
+
+                let player_support_area = self.player.support_area.clone();
+                for i in player_support_area.iter() {
+                    i.on_turn_start(self);
+                }
+                drop(player_support_area);
+
+                let opponent_support_area = self.opponent.support_area.clone();
+                for i in opponent_support_area.iter() {
+                    i.on_turn_start(self);
+                }
+                drop(opponent_support_area);
             }
-            Message::UseSkill(s, t) => {
+
+            Message::UseSkill(skill, target, cost) => {
                 let raw_handler =
                     Arc::into_raw(self.player.characters[self.player.active_character].handler.clone())
                         as *mut dyn CharacterHandler;
                 // This is safe because handler will only be read in one thread
                 unsafe {
-                    match s {
+                    match skill {
                         SkillType::NormalAttack => {
-                            (*raw_handler).on_normal_attack(self.player.active_character, *t, self);
+                            (*raw_handler).on_normal_attack(self.player.active_character, *target, self);
                         }
                         SkillType::ESkill => {
-                            (*raw_handler).on_e_skill(self.player.active_character, *t, self);
+                            (*raw_handler).on_e_skill(self.player.active_character, *target, self);
                         }
                         SkillType::QSkill => {
-                            (*raw_handler).on_q_skill(self.player.active_character, *t, self);
+                            (*raw_handler).on_q_skill(self.player.active_character, *target, self);
                         }
                     }
+                }
+
+                for i in cost.iter() {
+                    self.player.dice_set.dices[*i] = ElementType::Null;
+                }
+
+                let player_elements = self.player.get_character_elements();
+                self.player.dice_set.sort_dice(player_elements);
+                self.player.dice_set.dice_count -= cost.len();
+            }
+
+            Message::RerollDice(dices) => {
+                if dices.len() == 0 {
+                    self.player.reroll_chances = 0;
+                } else {
+                    for i in dices.iter() {
+                        self.player.dice_set.reroll_dice(*i);
+                    }
+
+                    let player_elements = self.player.get_character_elements();
+                    self.player.dice_set.sort_dice(player_elements);
+                    self.player.reroll_chances -= 1;
                 }
             }
         }

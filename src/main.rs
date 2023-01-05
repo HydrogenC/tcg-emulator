@@ -29,19 +29,7 @@ fn main() {
 
     let (send, recv) = channel::<Message>();
     let mut app = TcgApp::new(send);
-    app.load_resources();
-
-    {
-        let mut env = app.game_env.write().unwrap();
-        env.player.dice_set.roll_dices();
-
-        let player_elements = env.player.get_character_elements();
-        env.player.dice_set.sort_dice(player_elements);
-    }
-
-    for _ in 0..16usize {
-        app.dice_selection.push(false);
-    }
+    app.initialize();
 
     let thread_game_env = app.game_env.clone();
     std::thread::spawn(move || {
@@ -88,17 +76,18 @@ impl TcgApp {
         }
     }
 
-    fn no_dice_selected(&self) -> bool {
-        let bit_val = *self.dice_selection.as_raw_slice().first().unwrap();
-        bit_val == 0u16
-    }
+    fn initialize(&mut self) {
+        // Initialize bitset
+        for _ in 0..16usize {
+            self.dice_selection.push(false);
+        }
 
-    fn load_resources(&mut self) {
+        // Load resources
         let files = fs::read_dir("images/").unwrap();
 
         for elem in files {
             let path = elem.unwrap().path();
-            let file_name=path.file_name().unwrap().to_str().unwrap();
+            let file_name = path.file_name().unwrap().to_str().unwrap();
 
             let f = File::open(path.as_path()).unwrap();
             let mut reader = BufReader::new(f);
@@ -111,11 +100,26 @@ impl TcgApp {
             ).unwrap()));
         }
     }
+
+    // Convert bitset to vec<usize>
+    pub fn bitset_to_dice_selection(bitset: &BitVec<u16>, len: usize) -> Vec<usize> {
+        let bit_val = *bitset.as_raw_slice().first().unwrap();
+        let mut selected_dices = Vec::new();
+
+        if bit_val != 0u16 {
+            for i in 0usize..len {
+                if bitset[i] {
+                    selected_dices.push(i);
+                }
+            }
+        }
+
+        selected_dices
+    }
 }
 
 impl eframe::App for TcgApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let no_dice_selected = self.no_dice_selected();
         let mut env = self.game_env.write().unwrap();
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -147,31 +151,24 @@ impl eframe::App for TcgApp {
                     }
                 }
 
+                // Update status
+                if env.player.reroll_chances > 0 {
+                    self.app_state = AppState::Rerolling;
+                }
+
                 if self.app_state == AppState::Rerolling {
-                    if ui.button("Reroll dices").clicked() {
-                        {
-                            let player_dice_set = &mut env.player.dice_set;
+                    if env.player.reroll_chances == 0 {
+                        self.app_state = AppState::Operating;
+                    } else {
+                        if ui.button("Reroll dices").clicked() {
+                            {
+                                let player_dice_set = &mut env.player.dice_set;
 
-                            if no_dice_selected {
-                                env.reroll_chances = 0;
-                                self.app_state = AppState::Operating;
-                            } else {
-                                for i in 0usize..player_dice_set.dice_count {
-                                    if self.dice_selection[i] {
-                                        player_dice_set.reroll_dice(i);
-                                    }
-
-                                    self.dice_selection.set(i, false);
-                                }
+                                self.game_loop_recv.send(Message::RerollDice(
+                                    TcgApp::bitset_to_dice_selection(&self.dice_selection, player_dice_set.dice_count)
+                                )).expect("Send message failed");
+                                self.dice_selection.fill(false);
                             }
-                        }
-
-                        let player_elements = env.player.get_character_elements();
-                        env.player.dice_set.sort_dice(player_elements);
-
-                        env.reroll_chances -= 1;
-                        if env.reroll_chances == 0 {
-                            self.app_state = AppState::Operating;
                         }
                     }
                 }
@@ -182,6 +179,7 @@ impl eframe::App for TcgApp {
             ui.horizontal(|ui| {
                 ui.label("Opp");
 
+                let player_dice_count = env.player.dice_set.dice_count;
                 let object = &mut env.opponent;
                 for i in 0..object.characters.len() {
                     ui.vertical(|ui| {
@@ -192,7 +190,9 @@ impl eframe::App for TcgApp {
                             pic.texture_id(ctx), Vec2::new(52.5f32, 90f32));
                         if btn.ui(ui).clicked() {
                             if let AppState::Targeting(x) = &self.app_state {
-                                self.game_loop_recv.send(Message::UseSkill(*x, i)).expect("TODO: panic message");
+                                self.game_loop_recv.send(Message::UseSkill(*x, i, TcgApp::bitset_to_dice_selection(&self.dice_selection, player_dice_count),
+                                )).expect("Send message failed");
+                                self.dice_selection.fill(false);
                             }
                         }
                     });
@@ -219,69 +219,74 @@ impl eframe::App for TcgApp {
                 }
             });
 
-            ui.separator();
-            ui.horizontal(|ui| {
-                let active_character = &env.player.characters[env.player.active_character];
+            if self.app_state != AppState::Rerolling {
+                ui.separator();
+                ui.horizontal(|ui| {
+                    let active_character = &env.player.characters[env.player.active_character];
 
-                if ui.button(
-                    format!("Normal Attack: 1{}+2Any", active_character.element)
-                ).clicked() {
-                    self.dice_selection.fill(false);
+                    if ui.button(
+                        format!("Normal Attack: 1{}+2Any", active_character.element)
+                    ).clicked() {
+                        self.dice_selection.fill(false);
 
-                    // Test use only
-                    match env.player.dice_set
-                        .find_dice(false, ElementType::Null, 3) {
-                        Some(t) => {
-                            for elem in t {
-                                self.dice_selection.set(elem, true);
+                        // Test use only
+                        match env.player.dice_set
+                            .find_dice(false, ElementType::Null, 3) {
+                            Some(t) => {
+                                for elem in t {
+                                    self.dice_selection.set(elem, true);
+                                }
+
+                                self.app_state = AppState::Targeting(SkillType::NormalAttack);
                             }
-
-                            self.app_state = AppState::Targeting(SkillType::NormalAttack);
+                            None => {}
                         }
-                        None => {}
                     }
-                }
 
-                if ui.button(
-                    format!("E Skill: {}{}", active_character.e_cost, active_character.element)
-                ).clicked() {
-                    self.dice_selection.fill(false);
+                    if ui.button(
+                        format!("E Skill: {}{}", active_character.e_cost, active_character.element)
+                    ).clicked() {
+                        self.dice_selection.fill(false);
 
-                    match env.player.dice_set
-                        .find_dice(true, active_character.element, active_character.e_cost) {
-                        Some(t) => {
-                            for elem in t {
-                                self.dice_selection.set(elem, true);
+                        match env.player.dice_set
+                            .find_dice(true, active_character.element, active_character.e_cost) {
+                            Some(t) => {
+                                for elem in t {
+                                    self.dice_selection.set(elem, true);
+                                }
+
+                                self.app_state = AppState::Targeting(SkillType::ESkill);
                             }
-
-                            self.app_state = AppState::Targeting(SkillType::ESkill);
+                            None => {}
                         }
-                        None => {}
                     }
-                }
 
-                if ui.button(
-                    format!("Q Skill: {}{}", active_character.q_cost, active_character.element)
-                ).clicked() {
-                    self.dice_selection.fill(false);
+                    if ui.button(
+                        format!("Q Skill: {}{}", active_character.q_cost, active_character.element)
+                    ).clicked() {
+                        self.dice_selection.fill(false);
 
-                    match env.player.dice_set
-                        .find_dice(true, active_character.element, active_character.q_cost) {
-                        Some(t) => {
-                            for elem in t {
-                                self.dice_selection.set(elem, true);
+                        match env.player.dice_set
+                            .find_dice(true, active_character.element, active_character.q_cost) {
+                            Some(t) => {
+                                for elem in t {
+                                    self.dice_selection.set(elem, true);
+                                }
+
+                                self.app_state = AppState::Targeting(SkillType::QSkill);
                             }
-
-                            self.app_state = AppState::Targeting(SkillType::QSkill);
+                            None => {}
                         }
-                        None => {}
                     }
-                }
 
-                if ui.button("Declare end of turn").clicked() {
-                    self.game_loop_recv.send(Message::TurnEnd).expect("Message send failed");
-                }
-            });
+                    if ui.button("Declare end of turn").clicked() {
+                        self.game_loop_recv.send(Message::TurnEnd).expect("Message send failed");
+                        self.game_loop_recv.send(Message::TurnStart).expect("Message send failed");
+
+                        self.dice_selection.fill(false);
+                    }
+                });
+            }
         });
     }
 }
