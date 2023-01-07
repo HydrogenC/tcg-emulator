@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::fmt;
-use egui::Color32;
 use rand::prelude::*;
 use int_enum::IntEnum;
 use crate::dice_set::ElementType::Universal;
@@ -18,17 +17,6 @@ pub enum ElementType {
     Dendro = 7,
     Null = 8,
 }
-
-pub const COLORS: &[Color32] = &[
-    Color32::from_rgb(255, 255, 255),
-    Color32::from_rgb(211, 118, 240),
-    Color32::from_rgb(28, 114, 253),
-    Color32::from_rgb(226, 49, 29),
-    Color32::from_rgb(152, 200, 232),
-    Color32::from_rgb(51, 204, 179),
-    Color32::from_rgb(207, 167, 38),
-    Color32::from_rgb(123, 180, 45),
-];
 
 impl fmt::Display for ElementType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

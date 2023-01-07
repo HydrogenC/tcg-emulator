@@ -1,35 +1,52 @@
 use std::sync::Arc;
+use std::sync::mpsc::Sender;
+use actix::Addr;
 use crate::characters::character::CharacterHandler;
 use crate::dice_set::ElementType;
-use crate::messages::{Message, SkillType};
+use crate::game_events::{GameEvents, SkillType};
+use crate::GameActor;
 use crate::player::Player;
+use crate::server_messages::FetchCharacterListMessage;
 
 pub struct GameEnvironment {
     pub player: Player,
     pub opponent: Player,
+    pub game_actor_addr: Addr<GameActor>,
 }
 
-impl Default for GameEnvironment {
-    fn default() -> Self {
+impl GameEnvironment {
+    pub(crate) fn new(addr: Addr<GameActor>) -> Self {
         GameEnvironment {
             player: Player::default(),
             opponent: Player::default(),
+            game_actor_addr: addr,
         }
     }
 }
 
 impl GameEnvironment {
-    pub fn game_loop(&mut self, msg: &Message) {
+    pub fn game_loop(&mut self, msg: &GameEvents, send: &Sender<GameEvents>) {
         match msg {
-            Message::ChangeActive(t) => {
+            GameEvents::RequestCharacterList => {
+                self.game_actor_addr.do_send(FetchCharacterListMessage {
+                    player_characters: self.player.characters.iter().map(|a| {
+                        a.name.to_string()
+                    }).collect(),
+                    opponent_characters: self.opponent.characters.iter().map(|a| {
+                        a.name.to_string()
+                    }).collect(),
+                });
+            }
+
+            GameEvents::ChangeActive(t) => {
                 self.player.active_character = *t;
             }
 
-            Message::UseActionCard(card, target) => {
-                card.use_card(*target, self);
+            GameEvents::UseActionCard(card, target) => {
+                // self.player.use_card(*target, self);
             }
 
-            Message::TurnEnd => {
+            GameEvents::TurnEnd => {
                 let player_summoned_area = self.player.summoned_area.clone();
                 for i in 0..player_summoned_area.len() {
                     player_summoned_area[i].on_turn_end(self);
@@ -61,9 +78,11 @@ impl GameEnvironment {
                     i.on_turn_end(self);
                 }
                 drop(opponent_support_area);
+
+                send.send(GameEvents::TurnStart).expect("TODO: panic message");
             }
 
-            Message::TurnStart => {
+            GameEvents::TurnStart => {
                 self.player.reroll_chances = 1;
 
                 self.player.dice_set.roll_dices();
@@ -83,7 +102,7 @@ impl GameEnvironment {
                 drop(opponent_support_area);
             }
 
-            Message::UseSkill(skill, target, cost) => {
+            GameEvents::UseSkill(skill, target, cost) => {
                 let raw_handler =
                     Arc::into_raw(self.player.characters[self.player.active_character].handler.clone())
                         as *mut dyn CharacterHandler;
@@ -111,7 +130,7 @@ impl GameEnvironment {
                 self.player.dice_set.dice_count -= cost.len();
             }
 
-            Message::RerollDice(dices) => {
+            GameEvents::RerollDice(dices) => {
                 if dices.len() == 0 {
                     self.player.reroll_chances = 0;
                 } else {
@@ -124,6 +143,8 @@ impl GameEnvironment {
                     self.player.reroll_chances -= 1;
                 }
             }
+
+            _ => {}
         }
     }
 }

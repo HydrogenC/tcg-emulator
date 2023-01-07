@@ -1,6 +1,3 @@
-use std::sync::Arc;
-use crate::cards::ActionCard;
-
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum SkillType {
     NormalAttack,
@@ -8,11 +5,13 @@ pub enum SkillType {
     QSkill,
 }
 
-pub enum Message {
+pub enum GameEvents {
+    RequestCharacterList,
     ChangeActive(usize),
-    TurnEnd,
     TurnStart,
+    TurnEnd,
     UseSkill(SkillType, usize, Vec<usize>),
-    UseActionCard(Arc<dyn ActionCard>, usize),
-    RerollDice(Vec<usize>)
+    UseActionCard(usize, usize),
+    RerollDice(Vec<usize>),
+    TerminateGame,
 }
