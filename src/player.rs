@@ -31,13 +31,17 @@ macro_rules! init_array {
     }
 }
 
-impl Default for Player {
-    fn default() -> Self {
+impl Player {
+    pub fn new(player_index: usize) -> Self {
         Player {
             dice_set: DiceSet::default(),
             support_area: init_array!(Arc<dyn SupportCard>, 4, Arc::new(EmptyCard {})),
-            summoned_area: init_array!(Arc<dyn SummonedCard>, 4, Arc::new(EmptyCard{})),
-            characters: [yoimiya(), ganyu(), fischl()],
+            summoned_area: init_array!(Arc<dyn SummonedCard>, 4, Arc::new(EmptyCard {})),
+            characters: [
+                yoimiya(),
+                fischl(),
+                ganyu()
+            ],
             active_character: 0usize,
             support_area_count: 0usize,
             summoned_area_count: 0usize,

@@ -1,11 +1,12 @@
 use std::sync::Arc;
+use crate::operation_context::OperationContext;
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
 
 pub trait CharacterHandler: Send + Sync {
-    fn on_normal_attack(&mut self, me: usize, target: usize, env: &mut GameEnvironment);
-    fn on_e_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment);
-    fn on_q_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment);
+    fn on_normal_attack(&mut self, info: OperationContext, env: &mut GameEnvironment);
+    fn on_e_skill(&mut self, info: OperationContext, env: &mut GameEnvironment);
+    fn on_q_skill(&mut self, info: OperationContext, env: &mut GameEnvironment);
 }
 
 pub struct Character {

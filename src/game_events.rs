@@ -10,7 +10,7 @@ pub enum GameEvents {
     ChangeActive(usize),
     TurnStart,
     TurnEnd,
-    UseSkill(SkillType, usize, Vec<usize>),
+    UseSkill(SkillType, Vec<usize>),
     UseActionCard(usize, usize),
     RerollDice(Vec<usize>),
     TerminateGame,

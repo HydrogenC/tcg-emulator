@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use crate::operation_context::OperationContext;
 use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
@@ -12,15 +13,15 @@ impl Default for GanyuHandler {
 }
 
 impl CharacterHandler for GanyuHandler {
-    fn on_normal_attack(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_normal_attack(&mut self, info: OperationContext, env: &mut GameEnvironment) {
         todo!()
     }
 
-    fn on_e_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_e_skill(&mut self, info: OperationContext, env: &mut GameEnvironment) {
         todo!()
     }
 
-    fn on_q_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_q_skill(&mut self, info: OperationContext, env: &mut GameEnvironment) {
         todo!()
     }
 }

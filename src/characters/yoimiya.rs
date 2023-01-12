@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use crate::operation_context::OperationContext;
 use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
 use crate::game_environment::GameEnvironment;
@@ -16,16 +17,16 @@ impl Default for YoimiyaHandler {
 }
 
 impl CharacterHandler for YoimiyaHandler {
-    fn on_normal_attack(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_normal_attack(&mut self, info: OperationContext, env: &mut GameEnvironment) {
         let dmg = if self.pyro_attached { 4 } else { 2 };
-        env.opponent.characters[target].hp -= dmg;
+        env.players[info.target_player].characters[info.target_character].hp -= dmg;
     }
 
-    fn on_e_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_e_skill(&mut self, info: OperationContext, env: &mut GameEnvironment) {
         self.pyro_attached = true;
     }
 
-    fn on_q_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_q_skill(&mut self, info: OperationContext, env: &mut GameEnvironment) {
         todo!()
     }
 }
@@ -39,6 +40,6 @@ pub fn yoimiya() -> Character {
         q_cost: 3,
         element: ElementType::Pyro,
         handler: Arc::new(YoimiyaHandler::default()),
-        image_key: "Yoimiya_Character_Card.webp"
+        image_key: "Yoimiya_Character_Card.webp",
     }
 }

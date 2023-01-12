@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use crate::operation_context::OperationContext;
 use crate::cards::SummonedCard;
 use crate::characters::character::{Character, CharacterHandler};
 use crate::dice_set::ElementType;
@@ -13,8 +14,9 @@ struct Oz {
 }
 
 impl SummonedCard for Oz {
-    fn on_turn_end(&self, env: &mut GameEnvironment) {
-        env.opponent.characters[env.opponent.active_character].hp -= 1;
+    fn on_turn_end(&self, subject_player: usize, env: &mut GameEnvironment) {
+        let opponent = &mut env.players[1 - subject_player];
+        opponent.characters[opponent.active_character].hp -= 1;
     }
 
     fn remaining_uses(&self) -> usize {
@@ -31,13 +33,13 @@ impl Default for FischlHandler {
 }
 
 impl CharacterHandler for FischlHandler {
-    fn on_normal_attack(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
-        env.opponent.characters[target].hp -= 2;
+    fn on_normal_attack(&mut self, info: OperationContext, env: &mut GameEnvironment) {
+        env.players[info.target_player].characters[info.target_character].hp -= 2;
     }
 
-    fn on_e_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_e_skill(&mut self, info: OperationContext, env: &mut GameEnvironment) {
         if self.oz.lifetime == 0 {
-            env.player.insert_summoned(self.oz.clone());
+            env.players[info.subject_player].insert_summoned(self.oz.clone());
         }
 
         // This is safe because oz will only be read in one thread
@@ -47,7 +49,7 @@ impl CharacterHandler for FischlHandler {
         }
     }
 
-    fn on_q_skill(&mut self, me: usize, target: usize, env: &mut GameEnvironment) {
+    fn on_q_skill(&mut self, info: OperationContext, env: &mut GameEnvironment) {
         todo!()
     }
 }

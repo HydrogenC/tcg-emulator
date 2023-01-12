@@ -17,10 +17,12 @@ mod player;
 mod game_events;
 mod server_messages;
 mod characters;
+mod operation_context;
 
 pub struct GameActor {
     env: Option<Arc<RwLock<GameEnvironment>>>,
     game_loop_recv: Option<Sender<GameEvents>>,
+    player_index: usize,
 }
 
 impl GameActor {
@@ -28,6 +30,7 @@ impl GameActor {
         let ac = GameActor {
             env: None,
             game_loop_recv: None,
+            player_index: 0,
         };
 
         return ac;
@@ -43,6 +46,7 @@ impl Actor for GameActor {
         self.env = Some(Arc::new(RwLock::new(GameEnvironment::new(ctx.address()))));
 
         let game_env_cloned = self.env.as_ref().unwrap().clone();
+        let player_index = self.player_index;
         thread::spawn(move || {
             loop {
                 let msg = recv.recv().unwrap();
@@ -52,7 +56,7 @@ impl Actor for GameActor {
                     break;
                 }
 
-                env.game_loop(&msg, &send);
+                env.game_loop(player_index, &msg, &send);
             }
         });
     }
