@@ -10,12 +10,11 @@ pub trait CharacterHandler: Send + Sync {
 }
 
 pub struct Character {
-    pub(crate) name: &'static str,
-    pub(crate) max_hp: usize,
-    pub(crate) hp: usize,
-    pub(crate) e_cost: usize,
-    pub(crate) q_cost: usize,
-    pub(crate) element: ElementType,
-    pub(crate) handler: Arc<dyn CharacterHandler>,
-    pub(crate) image_key: &'static str,
+    pub name: &'static str,
+    pub max_hp: usize,
+    pub hp: usize,
+    pub e_cost: usize,
+    pub q_cost: usize,
+    pub element: ElementType,
+    pub handler: Arc<dyn CharacterHandler>
 }

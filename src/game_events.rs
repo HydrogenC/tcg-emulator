@@ -5,13 +5,19 @@ pub enum SkillType {
     QSkill,
 }
 
-pub enum GameEvents {
-    RequestCharacterList,
-    ChangeActive(usize),
+pub enum GameEvent {
+    // Player index
+    RequestCharacterList(usize),
+    // Player index, Character index
+    ChangeActive(usize, usize),
     TurnStart,
+    // Player index
+    DeclareEndOfTurn(usize),
     TurnEnd,
-    UseSkill(SkillType, Vec<usize>),
-    UseActionCard(usize, usize),
-    RerollDice(Vec<usize>),
-    TerminateGame,
+    // Player index, Skill, Dices used
+    UseSkill(usize, SkillType, Vec<usize>),
+    // Player index, Card index, Character index
+    UseActionCard(usize, usize, usize),
+    // Player index, Dices to reroll
+    RerollDice(usize, Vec<usize>),
 }

@@ -32,7 +32,7 @@ macro_rules! init_array {
 }
 
 impl Player {
-    pub fn new(player_index: usize) -> Self {
+    pub fn new() -> Self {
         Player {
             dice_set: DiceSet::default(),
             support_area: init_array!(Arc<dyn SupportCard>, 4, Arc::new(EmptyCard {})),

@@ -20,7 +20,7 @@ pub struct UpdateStateMessage {
 
 #[derive(Serialize, Message)]
 #[rtype(result = "()")]
-pub struct FetchCharacterListMessage {
+pub struct CharacterListMessage {
     pub player_characters: Vec<String>,
     pub opponent_characters: Vec<String>,
 }

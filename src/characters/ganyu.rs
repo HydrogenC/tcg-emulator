@@ -35,6 +35,5 @@ pub fn ganyu() -> Character {
         q_cost: 3,
         element: ElementType::Cryo,
         handler: Arc::new(GanyuHandler::default()),
-        image_key: "Ganyu_Character_Card.webp",
     }
 }

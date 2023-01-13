@@ -40,6 +40,5 @@ pub fn yoimiya() -> Character {
         q_cost: 3,
         element: ElementType::Pyro,
         handler: Arc::new(YoimiyaHandler::default()),
-        image_key: "Yoimiya_Character_Card.webp",
     }
 }

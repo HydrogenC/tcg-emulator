@@ -63,6 +63,5 @@ pub fn fischl() -> Character {
         q_cost: 4,
         element: ElementType::Electro,
         handler: Arc::new(FischlHandler::default()),
-        image_key: "Fischl_Character_Card.webp",
     }
 }

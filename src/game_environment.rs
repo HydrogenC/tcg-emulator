@@ -1,56 +1,66 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::sync::mpsc::Sender;
 use actix::Addr;
 use crate::operation_context::OperationContext;
-use crate::characters::character::{Character, CharacterHandler};
+use crate::characters::character::CharacterHandler;
 use crate::dice_set::ElementType;
-use crate::game_events::{GameEvents, SkillType};
-use crate::GameActor;
+use crate::game_events::{GameEvent, SkillType};
 use crate::player::Player;
-use crate::server_messages::FetchCharacterListMessage;
+use crate::player_session::PlayerSession;
+use crate::server_messages::CharacterListMessage;
 
 pub struct GameEnvironment {
     pub players: [Player; 2],
-    pub game_actor_addr: [Option<Addr<GameActor>>; 2],
+    pub session_addr: [Option<Addr<PlayerSession>>; 2],
     pub active_players: usize,
+    pub game_ended: Arc<RwLock<bool>>,
 }
 
 impl GameEnvironment {
-    pub(crate) fn new(addr: Addr<GameActor>) -> Self {
+    pub fn new() -> Self {
         GameEnvironment {
             players: [
-                Player::new(0),
-                Player::new(1)
+                Player::new(),
+                Player::new()
             ],
-            game_actor_addr: [None, None],
+            session_addr: [None, None],
             active_players: 0,
+            game_ended: Arc::new(RwLock::new(false)),
         }
     }
-}
 
-impl GameEnvironment {
-    pub fn game_loop(&mut self, player_index: usize, msg: &GameEvents, send: &Sender<GameEvents>) {
+    pub fn add_player(&mut self, player_addr: Addr<PlayerSession>) -> usize {
+        self.session_addr[self.active_players] = Some(player_addr);
+        self.active_players += 1;
+        self.active_players - 1
+    }
+
+    pub fn handle_message(&mut self, msg: &GameEvent, send: &Sender<GameEvent>) {
         match msg {
-            GameEvents::RequestCharacterList => {
-                self.game_actor_addr[player_index].as_ref().unwrap().do_send(FetchCharacterListMessage {
-                    player_characters: self.players[player_index].characters.iter().map(|a| {
+            GameEvent::RequestCharacterList(id) => {
+                self.session_addr[*id].as_ref().unwrap().do_send(CharacterListMessage {
+                    player_characters: self.players[*id].characters.iter().map(|a| {
                         a.name.to_string()
                     }).collect(),
-                    opponent_characters: self.players[1usize - player_index].characters.iter().map(|a| {
+                    opponent_characters: self.players[1usize - id].characters.iter().map(|a| {
                         a.name.to_string()
                     }).collect(),
                 });
             }
 
-            GameEvents::ChangeActive(t) => {
-                self.players[player_index].active_character = *t;
+            GameEvent::ChangeActive(id, t) => {
+                self.players[*id].active_character = *t;
             }
 
-            GameEvents::UseActionCard(card, target) => {
+            GameEvent::UseActionCard(id, card, target) => {
                 // self.player.use_card(*target, self);
             }
 
-            GameEvents::TurnEnd => {
+            GameEvent::DeclareEndOfTurn(id) => {
+
+            }
+
+            GameEvent::TurnEnd => {
                 for index in 0..2usize {
                     let summoned_area = self.players[index].summoned_area.clone();
                     for i in 0..summoned_area.len() {
@@ -67,10 +77,10 @@ impl GameEnvironment {
                     }
                 }
 
-                send.send(GameEvents::TurnStart).expect("TODO: panic message");
+                send.send(GameEvent::TurnStart).expect("TODO: panic message");
             }
 
-            GameEvents::TurnStart => {
+            GameEvent::TurnStart => {
                 for index in 0..2usize {
                     self.players[index].reroll_chances = 1;
 
@@ -85,15 +95,15 @@ impl GameEnvironment {
                 }
             }
 
-            GameEvents::UseSkill(skill, cost) => {
+            GameEvent::UseSkill(id, skill, cost) => {
                 let raw_handler =
-                    Arc::into_raw(self.players[player_index].characters[self.players[player_index].active_character].handler.clone())
+                    Arc::into_raw(self.players[*id].characters[self.players[*id].active_character].handler.clone())
                         as *mut dyn CharacterHandler;
 
                 let context_info = OperationContext::new(
-                    player_index,
-                    self.players[player_index].active_character,
-                    self.players[1 - player_index].active_character,
+                    *id,
+                    self.players[*id].active_character,
+                    self.players[1 - id].active_character,
                 );
 
                 // This is safe because handler will only be read in one thread
@@ -112,29 +122,27 @@ impl GameEnvironment {
                 }
 
                 for i in cost.iter() {
-                    self.players[player_index].dice_set.dices[*i] = ElementType::Null;
+                    self.players[*id].dice_set.dices[*i] = ElementType::Null;
                 }
 
-                let player_elements = self.players[player_index].get_character_elements();
-                self.players[player_index].dice_set.sort_dice(player_elements);
-                self.players[player_index].dice_set.dice_count -= cost.len();
+                let player_elements = self.players[*id].get_character_elements();
+                self.players[*id].dice_set.sort_dice(player_elements);
+                self.players[*id].dice_set.dice_count -= cost.len();
             }
 
-            GameEvents::RerollDice(dices) => {
+            GameEvent::RerollDice(id, dices) => {
                 if dices.len() == 0 {
-                    self.players[player_index].reroll_chances = 0;
+                    self.players[*id].reroll_chances = 0;
                 } else {
                     for i in dices.iter() {
-                        self.players[player_index].dice_set.reroll_dice(*i);
+                        self.players[*id].dice_set.reroll_dice(*i);
                     }
 
-                    let player_elements = self.players[player_index].get_character_elements();
-                    self.players[player_index].dice_set.sort_dice(player_elements);
-                    self.players[player_index].reroll_chances -= 1;
+                    let player_elements = self.players[*id].get_character_elements();
+                    self.players[*id].dice_set.sort_dice(player_elements);
+                    self.players[*id].reroll_chances -= 1;
                 }
             }
-
-            _ => {}
         }
     }
 }
