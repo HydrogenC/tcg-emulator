@@ -7,7 +7,7 @@ use crate::dice_set::ElementType;
 use crate::game_events::{GameEvent, SkillType};
 use crate::player::Player;
 use crate::player_session::PlayerSession;
-use crate::server_messages::CharacterListMessage;
+use crate::server_messages::SetupClientMessage;
 
 pub struct GameEnvironment {
     pub players: [Player; 2],
@@ -37,8 +37,9 @@ impl GameEnvironment {
 
     pub fn handle_message(&mut self, msg: &GameEvent, send: &Sender<GameEvent>) {
         match msg {
-            GameEvent::RequestCharacterList(id) => {
-                self.session_addr[*id].as_ref().unwrap().do_send(CharacterListMessage {
+            GameEvent::SetupClient(id) => {
+                self.session_addr[*id].as_ref().unwrap().do_send(SetupClientMessage {
+                    player_index: *id,
                     player_characters: self.players[*id].characters.iter().map(|a| {
                         a.name.to_string()
                     }).collect(),

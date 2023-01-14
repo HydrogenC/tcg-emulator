@@ -43,7 +43,7 @@ impl Handler<EnterRoomMessage> for GameServer {
     type Result = Result<EnterRoomResult, std::io::Error>;
 
     fn handle(&mut self, msg: EnterRoomMessage, ctx: &mut Self::Context) -> Self::Result {
-        let game_arc = if !self.games.contains_key(&msg.room_id) {
+        if !self.games.contains_key(&msg.room_id) {
             let game_env = Arc::new(RwLock::new(GameEnvironment::new()));
             let (send, recv) = channel();
 
@@ -56,9 +56,11 @@ impl Handler<EnterRoomMessage> for GameServer {
                     let msg = recv.recv().unwrap();
                     let mut env = game_env_clone.write().unwrap();
 
-                    if !(*game_ended_clone.read().unwrap()) {
+                    if *game_ended_clone.read().unwrap() {
                         break;
                     }
+
+                    println!("Got client message");
                     env.handle_message(&msg, &send_clone);
                 }
             });
@@ -66,17 +68,16 @@ impl Handler<EnterRoomMessage> for GameServer {
             self.games.insert(msg.room_id, GameInstance {
                 env: game_env,
                 send,
-            }).unwrap()
-        } else {
-            self.games.get(&msg.room_id).unwrap().clone()
-        };
+            });
+        }
+        let game_arc = self.games.get(&msg.room_id).unwrap();
 
         let mut game_env = game_arc.env.write().unwrap();
         let player_index = game_env.add_player(msg.addr);
 
         Ok(EnterRoomResult {
             player_index,
-            sender: game_arc.send,
+            sender: game_arc.send.clone(),
         })
     }
 }

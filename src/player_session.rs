@@ -3,9 +3,9 @@ use actix::{Actor, ActorContext, ActorFutureExt, ActorTryFutureExt, Addr, AsyncC
 use actix_web_actors::ws;
 use serde_json::{json, Value};
 use crate::game_events::GameEvent;
-use crate::game_events::GameEvent::RequestCharacterList;
+use crate::game_events::GameEvent::SetupClient;
 use crate::game_server::{EnterRoomMessage, GameServer};
-use crate::server_messages::CharacterListMessage;
+use crate::server_messages::SetupClientMessage;
 
 #[derive(Debug)]
 pub struct PlayerSession {
@@ -34,7 +34,8 @@ impl PlayerSession {
             act.game_loop_channel = Some(result.sender);
             act.player_index = result.player_index;
 
-            act.game_loop_channel.as_ref().unwrap().send(RequestCharacterList(act.player_index))
+            println!("Player {} request character list", act.player_index);
+            act.game_loop_channel.as_ref().unwrap().send(SetupClient(act.player_index))
                 .expect("TODO: panic message");
             fut::ready(())
         }).wait(ctx);
@@ -51,8 +52,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
             Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
             Ok(ws::Message::Text(text)) => {
                 let json: Value = serde_json::from_str(text.to_string().as_str()).unwrap();
-                let ty = json["type"].to_string();
-                match ty.as_str() {
+                let ty = json["type"].as_str().unwrap();
+                println!("Client message: {}\nType: {}", text.to_string(), ty);
+                match ty {
                     "JoinRoom" => {
                         let room_id = json["room"].as_u64().unwrap();
                         self.join_room(room_id as usize, ctx);
@@ -66,16 +68,17 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerSession {
     }
 }
 
-impl Handler<CharacterListMessage> for PlayerSession {
+impl Handler<SetupClientMessage> for PlayerSession {
     type Result = ();
 
-    fn handle(&mut self, msg: CharacterListMessage, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: SetupClientMessage, ctx: &mut Self::Context) -> Self::Result {
         let data = serde_json::to_value(&msg).unwrap();
         let root = json!({
-            "type": "CharacterList",
+            "type": "SetupClient",
             "data": data
         });
 
+        println!("Server: {}", root.to_string());
         ctx.text(root.to_string());
     }
 }

@@ -1,6 +1,8 @@
 use actix::prelude::*;
 use serde::{Deserialize, Serialize};
 
+// Messages sent to the client
+
 #[derive(Serialize)]
 pub struct PlayerState {
     hp: usize,
@@ -20,7 +22,8 @@ pub struct UpdateStateMessage {
 
 #[derive(Serialize, Message)]
 #[rtype(result = "()")]
-pub struct CharacterListMessage {
+pub struct SetupClientMessage {
+    pub player_index: usize,
     pub player_characters: Vec<String>,
     pub opponent_characters: Vec<String>,
 }

@@ -5,9 +5,10 @@ pub enum SkillType {
     QSkill,
 }
 
+// Messages received from the client side
 pub enum GameEvent {
     // Player index
-    RequestCharacterList(usize),
+    SetupClient(usize),
     // Player index, Character index
     ChangeActive(usize, usize),
     TurnStart,
