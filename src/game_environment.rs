@@ -7,12 +7,13 @@ use crate::dice_set::ElementType;
 use crate::game_events::{GameEvent, SkillType};
 use crate::player::Player;
 use crate::player_session::PlayerSession;
-use crate::server_messages::SetupClientMessage;
+use crate::server_messages::*;
 
 pub struct GameEnvironment {
     pub players: [Player; 2],
     pub session_addr: [Option<Addr<PlayerSession>>; 2],
-    pub active_players: usize,
+    pub active_player_count: usize,
+    pub round_end_count: usize,
     pub game_ended: Arc<RwLock<bool>>,
 }
 
@@ -24,15 +25,16 @@ impl GameEnvironment {
                 Player::new()
             ],
             session_addr: [None, None],
-            active_players: 0,
+            active_player_count: 0,
+            round_end_count: 0,
             game_ended: Arc::new(RwLock::new(false)),
         }
     }
 
     pub fn add_player(&mut self, player_addr: Addr<PlayerSession>) -> usize {
-        self.session_addr[self.active_players] = Some(player_addr);
-        self.active_players += 1;
-        self.active_players - 1
+        self.session_addr[self.active_player_count] = Some(player_addr);
+        self.active_player_count += 1;
+        self.active_player_count - 1
     }
 
     pub fn handle_message(&mut self, msg: &GameEvent, send: &Sender<GameEvent>) {
@@ -57,11 +59,14 @@ impl GameEnvironment {
                 // self.player.use_card(*target, self);
             }
 
-            GameEvent::DeclareEndOfTurn(id) => {
-
+            GameEvent::DeclareRoundEnd(id) => {
+                self.round_end_count += 1;
+                if self.round_end_count == self.active_player_count {
+                    send.send(GameEvent::RoundEnd).expect("TODO: panic message");
+                }
             }
 
-            GameEvent::TurnEnd => {
+            GameEvent::RoundEnd => {
                 for index in 0..2usize {
                     let summoned_area = self.players[index].summoned_area.clone();
                     for i in 0..summoned_area.len() {
@@ -78,10 +83,11 @@ impl GameEnvironment {
                     }
                 }
 
-                send.send(GameEvent::TurnStart).expect("TODO: panic message");
+                self.round_end_count = 0;
+                send.send(GameEvent::RoundStart).expect("TODO: panic message");
             }
 
-            GameEvent::TurnStart => {
+            GameEvent::RoundStart => {
                 for index in 0..2usize {
                     self.players[index].reroll_chances = 1;
 
@@ -93,6 +99,10 @@ impl GameEnvironment {
                     for i in support_area.iter() {
                         i.on_turn_start(index, self);
                     }
+
+                    self.session_addr[index].as_ref().unwrap().do_send(UpdateDicesMessage{
+                        dice_set: self.players[index].dice_set.to_vec(),
+                    });
                 }
             }
 
@@ -129,6 +139,8 @@ impl GameEnvironment {
                 let player_elements = self.players[*id].get_character_elements();
                 self.players[*id].dice_set.sort_dice(player_elements);
                 self.players[*id].dice_set.dice_count -= cost.len();
+
+                send.send(GameEvent::TurnOf(1 - id)).expect("TODO: panic message");
             }
 
             GameEvent::RerollDice(id, dices) => {
@@ -142,6 +154,14 @@ impl GameEnvironment {
                     let player_elements = self.players[*id].get_character_elements();
                     self.players[*id].dice_set.sort_dice(player_elements);
                     self.players[*id].reroll_chances -= 1;
+                }
+            }
+            
+            GameEvent::TurnOf(id) => {
+                for elem in self.session_addr.iter(){
+                    elem.as_ref().unwrap().do_send(TurnOfMessage{
+                        turn_of: *id,
+                    });
                 }
             }
         }

@@ -91,7 +91,6 @@ impl DiceSet {
         if ty == ElementType::Null && must_same {
             let mut type_count = [0usize; 8];
             for i in 0usize..self.dice_count {
-
                 let element_index = self.dices[i].int_value() as usize;
                 type_count[element_index] += 1;
 
@@ -109,7 +108,6 @@ impl DiceSet {
         }
 
         for i in (0usize..self.dice_count).rev() {
-
             let cond = if must_same {
                 self.dices[i] == selected_type || self.dices[i] == Universal
             } else {
@@ -130,5 +128,15 @@ impl DiceSet {
         } else {
             None
         }
+    }
+
+    pub fn to_vec(&self) -> Vec<i8> {
+        let mut vec = vec![];
+
+        for i in 0..self.dice_count {
+            vec.push(self.dices[i].int_value());
+        }
+
+        vec
     }
 }

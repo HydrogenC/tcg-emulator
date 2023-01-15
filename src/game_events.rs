@@ -11,10 +11,12 @@ pub enum GameEvent {
     SetupClient(usize),
     // Player index, Character index
     ChangeActive(usize, usize),
-    TurnStart,
+    RoundStart,
     // Player index
-    DeclareEndOfTurn(usize),
-    TurnEnd,
+    DeclareRoundEnd(usize),
+    RoundEnd,
+    // Player index
+    TurnOf(usize),
     // Player index, Skill, Dices used
     UseSkill(usize, SkillType, Vec<usize>),
     // Player index, Card index, Character index

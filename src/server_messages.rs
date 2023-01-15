@@ -30,6 +30,12 @@ pub struct SetupClientMessage {
 
 #[derive(Serialize, Message)]
 #[rtype(result = "()")]
-pub struct UpdateDiceMessage {
+pub struct UpdateDicesMessage {
     pub dice_set: Vec<i8>,
+}
+
+#[derive(Serialize, Message)]
+#[rtype(result = "()")]
+pub struct TurnOfMessage{
+    pub turn_of: usize
 }

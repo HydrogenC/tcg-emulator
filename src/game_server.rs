@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
-use actix::{Actor, Addr, Context, Handler, Message};
+use actix::{Actor, Addr, Context, Handler, Message, MessageResponse};
 use crate::game_environment::GameEnvironment;
 use crate::game_events::GameEvent;
 use crate::player_session::PlayerSession;
@@ -12,13 +12,14 @@ pub struct EnterRoomMessage {
     pub room_id: usize,
 }
 
+#[derive(MessageResponse)]
 pub struct EnterRoomResult {
     pub player_index: usize,
     pub sender: Sender<GameEvent>,
 }
 
 impl Message for EnterRoomMessage {
-    type Result = Result<EnterRoomResult, std::io::Error>;
+    type Result = EnterRoomResult;
 }
 
 #[derive(Clone)]
@@ -40,7 +41,7 @@ impl GameServer {
 }
 
 impl Handler<EnterRoomMessage> for GameServer {
-    type Result = Result<EnterRoomResult, std::io::Error>;
+    type Result = EnterRoomResult;
 
     fn handle(&mut self, msg: EnterRoomMessage, ctx: &mut Self::Context) -> Self::Result {
         if !self.games.contains_key(&msg.room_id) {
@@ -75,10 +76,10 @@ impl Handler<EnterRoomMessage> for GameServer {
         let mut game_env = game_arc.env.write().unwrap();
         let player_index = game_env.add_player(msg.addr);
 
-        Ok(EnterRoomResult {
+        EnterRoomResult {
             player_index,
             sender: game_arc.send.clone(),
-        })
+        }
     }
 }
 
